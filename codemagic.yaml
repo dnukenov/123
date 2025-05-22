@@ -14,8 +14,7 @@ workflows:
         script: flutter pub get
       - name: Generate localization
         script: flutter gen-l10n
-      - name: Build APK
-        script: flutter build apk --release
+
       - name: Build IPA
         script: |
           flutter build ios --release --no-codesign
