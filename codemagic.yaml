@@ -1,48 +1,62 @@
 workflows:
-  android-ios-workflow:  # Рабочее название workflow (должно совпадать с тем, что вы выбираете в UI Codemagic)
-    name: Android & iOS Build
+  ios_build_only:  # ⚠️ Это имя должно точно совпадать с выбранным в UI Codemagic
+    name: iOS Build Pipeline
     max_build_duration: 120
     environment:
       groups:
-        - keystore_credentials  # Группа с вашими ключами подписи (если нужно)
-      flutter: "3.22.2"  # Явно указанная версия
+        - appstore_credentials  # Группа с сертификатами (если нужна подпись)
+      flutter: "stable"         # Или явная версия, например "3.22.2"
       xcode: latest
       cocoapods: default
-    
+
     scripts:
-      # 1. Инициализация Flutter
+      # 1. Подготовка Flutter
       - name: Flutter Setup
         script: |
           flutter clean
           flutter pub get
           flutter precache --ios
+          flutter gen-l10n
 
-      # 2. Сборка Android
-      - name: Build Android APK
+      # 2. Восстановление iOS модуля (если нужно)
+      - name: Ensure iOS Module
         script: |
-          flutter build apk --release
-          # ИЛИ для App Bundle:
-          # flutter build appbundle --release
+          if [ ! -d "ios" ]; then
+            flutter create --ios-language swift --org com.yourcompany.appname .
+          fi
 
-      # 3. Подготовка iOS
-      - name: Prepare iOS
+      # 3. Установка CocoaPods
+      - name: Install Pods
         script: |
           cd ios
           pod repo update
           pod install --repo-update --verbose
+          # Фикс для M1/M2
+          sed -i '' "s/EXCLUDED_ARCHS__EFFECTIVE_PLATFORM_SUFFIX_simulator__ARCHS_64_BIT_x86_64/EXCLUDED_ARCHS/g" Pods/Pods.xcodeproj/project.pbxproj
 
-      # 4. Сборка iOS
-      - name: Build iOS IPA
+      # 4. Сборка IPA
+      - name: Build IPA
         script: |
           flutter build ipa --release --no-codesign
+          # Для подписанной сборки:
+          # flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
     artifacts:
-      - build/**/outputs/**/*.apk  # Android артефакты
-      - build/**/outputs/**/*.aab
-      - build/ios/ipa/*.ipa        # iOS артефакты
+      - build/ios/ipa/*.ipa
       - ios/Podfile.lock
+      - ios/Runner.xcarchive  # Если нужен архив
+
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - ios/Pods
+        - ios/Flutter
 
     publishing:
       email:
         recipients:
-          - nukenovdani@gmail.com  # Замените на ваш email
+          - your.email@example.com  # ⚠️ Замените на реальный email
+      app_store_connect:  # Автозагрузка в App Store (опционально)
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
