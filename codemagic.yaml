@@ -1,7 +1,7 @@
 workflows:
   flutter-build:
     name: Flutter Build Workflow
-    max_build_duration: 120  # Увеличено время сборки
+    max_build_duration: 120
     environment:
       flutter: stable
       xcode: latest
@@ -9,28 +9,29 @@ workflows:
       vars:
         BUNDLE_ID: "com.example.myapp"
     scripts:
-      - name: Setup Flutter
+      - name: Generate Flutter files
         script: |
           flutter clean
           flutter pub get
-          flutter gen-l10n
+          flutter precache --ios
+          flutter create --ios-language swift --org $BUNDLE_ID .
 
       - name: Install CocoaPods dependencies
         script: |
           cd ios
           pod repo update
-          pod install --repo-update
+          pod install --repo-update --verbose
 
-      - name: Build iOS (no codesign)
-        script: |
-          flutter build ios --release --no-codesign --verbose
-
-      - name: Build IPA (for distribution)
+      - name: Build IPA
         script: |
           flutter build ipa --release --no-codesign
           
     artifacts:
       - build/ios/ipa/**/*.ipa
       - build/app/outputs/flutter-apk/**/*.apk
-      - build/ios/**/*.xcarchive
-      - ios/Podfile.lock
+
+cache:
+  cache_paths:
+    - ~/.pub-cache
+    - ios/Pods
+    - ios/Flutter/Flutter.podspec
