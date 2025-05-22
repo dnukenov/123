@@ -1,28 +1,33 @@
 workflows:
-  ios-build:
-    name: iOS IPA Build
+  ios-release-build:
+    name: iOS Runner Archive
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
-      vars:
-        BUNDLE_ID: "com.example.new_project"
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: "main"
-          include: true
-          source: true
     scripts:
-      - name: Install dependencies
+      - name: Установка зависимостей
         script: |
           flutter pub get
           cd ios
           pod install
-      - name: Build IPA
+      - name: Сборка iOS-архива
         script: |
-          flutter build ipa --no-codesign
+          flutter build ios --release --no-codesign
+      - name: Упаковка runner.apa.zip
+        script: |
+          mkdir -p build/runner
+          cp -R build/ios/iphoneos/Runner.app build/runner/
+          cd build/runner
+          zip -r runner.apa.zip Runner.app
     artifacts:
-      - build/ios/ipa/*.ipa
+      - build/runner/runner.apa.zip
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com
+        notify:
+          success: true
+          failure: true
+
