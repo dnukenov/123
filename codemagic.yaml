@@ -1,50 +1,17 @@
-
 workflows:
-  ios_build_only: 
-    name: iOS Build Pipeline
-    max_build_duration: 120
+  ios_workflow:  # ⚠️ Это имя должно быть в UI Codemagic
+    name: iOS Build
     environment:
-      groups:
-        - appstore_credentials  
-      flutter: "stable"         
+      flutter: "stable"
       xcode: latest
-      cocoapods: default
-
     scripts:
-      - name: Flutter Setup
+      - name: Build IPA
         script: |
           flutter clean
           flutter pub get
-          flutter precache --ios
-          flutter gen-l10n
-
-      - name: Ensure iOS Module
-        script: |
-          if [ ! -d "ios" ]; then
-            flutter create --ios-language swift --org com.yourcompany.appname .
-          fi
-
-      - name: Install Pods
-        script: |
           cd ios
-          pod repo update
-          pod install --repo-update --verbose
-          # Фикс для M1/M2
-          sed -i '' "s/EXCLUDED_ARCHS__EFFECTIVE_PLATFORM_SUFFIX_simulator__ARCHS_64_BIT_x86_64/EXCLUDED_ARCHS/g" Pods/Pods.xcodeproj/project.pbxproj
-
-      - name: Build IPA
-        script: |
+          pod install
           flutter build ipa --release --no-codesign
-          # Для подписанной сборки:
-          # flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
-
     artifacts:
       - build/ios/ipa/*.ipa
-      - ios/Podfile.lock
-      - ios/Runner.xcarchive  
-    cache:
-      cache_paths:
-        - ~/.pub-cache
-        - ios/Pods
-        - ios/Flutter
 
