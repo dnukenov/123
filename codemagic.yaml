@@ -1,21 +1,26 @@
 workflows:
-  ios-release-build:
-    name: iOS Runner Archive
+  ios-runner-build:
+    name: iOS Runner Build
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Установка зависимостей
+      - name: Установка зависимостей Flutter
         script: |
           flutter pub get
+      - name: Подготовка iOS
+        script: |
+          flutter build ios --release --no-codesign || true
+      - name: Установка зависимостей CocoaPods
+        script: |
           cd ios
           pod install
-      - name: Сборка iOS-архива
+      - name: Сборка iOS-приложения
         script: |
           flutter build ios --release --no-codesign
-      - name: Упаковка runner.apa.zip
+      - name: Упаковка Runner.app в runner.apa.zip
         script: |
           mkdir -p build/runner
           cp -R build/ios/iphoneos/Runner.app build/runner/
@@ -26,8 +31,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - 231549@astanait.edu.kz
-          
+          - your.email@example.com
         notify:
           success: true
           failure: true
