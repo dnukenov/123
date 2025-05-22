@@ -1,25 +1,28 @@
-
 workflows:
-  flutter-build:
-    name: Flutter Build Workflow
+  ios-build:
+    name: iOS IPA Build
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
       vars:
-        BUNDLE_ID: "com.example.myapp"
+        BUNDLE_ID: "com.example.new_project"
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: "main"
+          include: true
+          source: true
     scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
-      - name: Generate localization
-        script: flutter gen-l10n
-      - name: Build APK
-        script: flutter build apk --release
+      - name: Install dependencies
+        script: |
+          flutter pub get
+          cd ios
+          pod install
       - name: Build IPA
         script: |
-          flutter build ios --release --no-codesign
+          flutter build ipa --no-codesign
     artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk
-      - build/ios/iphoneos/Runner.app
-      - build/ios/archive/MyApp.xcarchive
+      - build/ios/ipa/*.ipa
