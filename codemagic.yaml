@@ -1,37 +1,60 @@
 workflows:
-  flutter-build:
-    name: Flutter Build Workflow
+  ios-workflow:
+    name: iOS Production Build
     max_build_duration: 120
     environment:
-      flutter: stable
+      flutter: "3.19.5"  # Фиксированная стабильная версия
       xcode: latest
       cocoapods: default
       vars:
-        BUNDLE_ID: "com.example.myapp"
+        APP_ID: "com.yourcompany.appname"  # Замените на ваш bundle id
     scripts:
-      - name: Generate Flutter files
+      # Шаг 1: Подготовка Flutter
+      - name: Flutter Setup
         script: |
           flutter clean
           flutter pub get
           flutter precache --ios
-          flutter create --ios-language swift --org $BUNDLE_ID .
+          flutter gen-l10n
 
-      - name: Install CocoaPods dependencies
+      # Шаг 2: Пересоздание iOS-части
+      - name: Recreate iOS Module
+        script: |
+          rm -rf ios
+          flutter create --ios-language swift --org $APP_ID .
+
+      # Шаг 3: Дополнительная проверка Flutter файлов
+      - name: Verify Flutter Files
+        script: |
+          mkdir -p ios/Flutter
+          cp ${FLUTTER_ROOT}/packages/flutter_tools/templates/cocoapods/podspec.tmpl ios/Flutter/Flutter.podspec
+          cp ${FLUTTER_ROOT}/bin/cache/artifacts/engine/ios-release/* ios/Flutter/
+
+      # Шаг 4: Установка CocoaPods
+      - name: Install Pods
         script: |
           cd ios
           pod repo update
           pod install --repo-update --verbose
 
+      # Шаг 5: Сборка IPA
       - name: Build IPA
         script: |
-          flutter build ipa --release --no-codesign
-          
-    artifacts:
-      - build/ios/ipa/**/*.ipa
-      - build/app/outputs/flutter-apk/**/*.apk
+          flutter build ipa --release --no-codesign --dart-define=APP_ENV=production
 
-cache:
-  cache_paths:
-    - ~/.pub-cache
-    - ios/Pods
-    - ios/Flutter/Flutter.podspec
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - ios/Podfile.lock
+
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - ios/Pods
+        - ios/Flutter
+        - ${FLUTTER_ROOT}/bin/cache
+
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com  # Замените на ваш email
