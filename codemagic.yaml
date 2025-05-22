@@ -1,16 +1,16 @@
+
 workflows:
-  ios_build_only:  # ⚠️ Это имя должно точно совпадать с выбранным в UI Codemagic
+  ios_build_only: 
     name: iOS Build Pipeline
     max_build_duration: 120
     environment:
       groups:
-        - appstore_credentials  # Группа с сертификатами (если нужна подпись)
-      flutter: "stable"         # Или явная версия, например "3.22.2"
+        - appstore_credentials  
+      flutter: "stable"         
       xcode: latest
       cocoapods: default
 
     scripts:
-      # 1. Подготовка Flutter
       - name: Flutter Setup
         script: |
           flutter clean
@@ -18,14 +18,12 @@ workflows:
           flutter precache --ios
           flutter gen-l10n
 
-      # 2. Восстановление iOS модуля (если нужно)
       - name: Ensure iOS Module
         script: |
           if [ ! -d "ios" ]; then
             flutter create --ios-language swift --org com.yourcompany.appname .
           fi
 
-      # 3. Установка CocoaPods
       - name: Install Pods
         script: |
           cd ios
@@ -34,7 +32,6 @@ workflows:
           # Фикс для M1/M2
           sed -i '' "s/EXCLUDED_ARCHS__EFFECTIVE_PLATFORM_SUFFIX_simulator__ARCHS_64_BIT_x86_64/EXCLUDED_ARCHS/g" Pods/Pods.xcodeproj/project.pbxproj
 
-      # 4. Сборка IPA
       - name: Build IPA
         script: |
           flutter build ipa --release --no-codesign
@@ -44,8 +41,7 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - ios/Podfile.lock
-      - ios/Runner.xcarchive  # Если нужен архив
-
+      - ios/Runner.xcarchive  
     cache:
       cache_paths:
         - ~/.pub-cache
@@ -55,8 +51,8 @@ workflows:
     publishing:
       email:
         recipients:
-          - your.email@example.com  # ⚠️ Замените на реальный email
-      app_store_connect:  # Автозагрузка в App Store (опционально)
+          - your.email@example.com 
+      app_store_connect: 
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
