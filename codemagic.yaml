@@ -1,17 +1,25 @@
+
 workflows:
-  ios_workflow:  # ⚠️ Это имя должно быть в UI Codemagic
-    name: iOS Build
+  flutter-build:
+    name: Flutter Build Workflow
+    max_build_duration: 60
     environment:
-      flutter: "stable"
+      flutter: stable
       xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: "com.example.myapp"
     scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Generate localization
+        script: flutter gen-l10n
+      - name: Build APK
+        script: flutter build apk --release
       - name: Build IPA
         script: |
-          flutter clean
-          flutter pub get
-          cd ios
-          pod install
-          flutter build ipa --release --no-codesign
+          flutter build ios --release --no-codesign
     artifacts:
-      - build/ios/ipa/*.ipa
-
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/ios/iphoneos/Runner.app
+      - build/ios/archive/MyApp.xcarchive
