@@ -26,7 +26,8 @@ workflows:
     publishing:
       email:
         recipients:
-          - your.email@example.com
+          - 231549@astanait.edu.kz
+          
         notify:
           success: true
           failure: true
