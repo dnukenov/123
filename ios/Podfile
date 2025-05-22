@@ -1,25 +1,40 @@
 platform :ios, '13.0'
 use_frameworks! :linkage => :static
 
-# Стандартный способ подключения Flutter pods
-flutter_application_path = '../..'
-load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+# Вручную определяем Flutter модуль
+def flutter_root
+  generated_xcode_build_settings = parse_KV_file('../Flutter/Generated.xcconfig')
+  File.expand_path(File.join(generated_xcode_build_settings['FLUTTER_ROOT'], '..'), __FILE__)
+end
+
+def install_flutter_engine_pod(application_path)
+  pod 'Flutter', :path => File.join(application_path, 'Flutter')
+end
 
 target 'Runner' do
-  install_all_flutter_pods(flutter_application_path)
+  install_flutter_engine_pod(File.expand_path('..', __FILE__))
+  
+  # Подключаем все плагины
+  flutter_plugins = File.expand_path('.flutter-plugins', __FILE__)
+  if File.exist?(flutter_plugins)
+    File.foreach(flutter_plugins) do |line|
+      plugin = line.split('=')
+      if plugin.length == 2
+        name = plugin[0].strip
+        path = plugin[1].strip
+        pod name, :path => File.join(path, 'ios')
+      end
+    end
+  end
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
       # Для M1/M2 Macs:
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-      # Для новых версий Xcode:
-      config.build_settings['ENABLE_BITCODE'] = 'NO'
     end
-  end
-  installer.pods_project.build_configurations.each do |config|
-    config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
   end
 end
