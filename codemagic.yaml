@@ -1,60 +1,48 @@
 workflows:
-  ios-workflow:
-    name: iOS Production Build
+  android-ios-workflow:  # Рабочее название workflow (должно совпадать с тем, что вы выбираете в UI Codemagic)
+    name: Android & iOS Build
     max_build_duration: 120
     environment:
-      flutter: "3.19.5"  # Фиксированная стабильная версия
+      groups:
+        - keystore_credentials  # Группа с вашими ключами подписи (если нужно)
+      flutter: "3.22.2"  # Явно указанная версия
       xcode: latest
       cocoapods: default
-      vars:
-        APP_ID: "com.yourcompany.appname"  # Замените на ваш bundle id
+    
     scripts:
-      # Шаг 1: Подготовка Flutter
+      # 1. Инициализация Flutter
       - name: Flutter Setup
         script: |
           flutter clean
           flutter pub get
           flutter precache --ios
-          flutter gen-l10n
 
-      # Шаг 2: Пересоздание iOS-части
-      - name: Recreate iOS Module
+      # 2. Сборка Android
+      - name: Build Android APK
         script: |
-          rm -rf ios
-          flutter create --ios-language swift --org $APP_ID .
+          flutter build apk --release
+          # ИЛИ для App Bundle:
+          # flutter build appbundle --release
 
-      # Шаг 3: Дополнительная проверка Flutter файлов
-      - name: Verify Flutter Files
-        script: |
-          mkdir -p ios/Flutter
-          cp ${FLUTTER_ROOT}/packages/flutter_tools/templates/cocoapods/podspec.tmpl ios/Flutter/Flutter.podspec
-          cp ${FLUTTER_ROOT}/bin/cache/artifacts/engine/ios-release/* ios/Flutter/
-
-      # Шаг 4: Установка CocoaPods
-      - name: Install Pods
+      # 3. Подготовка iOS
+      - name: Prepare iOS
         script: |
           cd ios
           pod repo update
           pod install --repo-update --verbose
 
-      # Шаг 5: Сборка IPA
-      - name: Build IPA
+      # 4. Сборка iOS
+      - name: Build iOS IPA
         script: |
-          flutter build ipa --release --no-codesign --dart-define=APP_ENV=production
+          flutter build ipa --release --no-codesign
 
     artifacts:
-      - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
+      - build/**/outputs/**/*.apk  # Android артефакты
+      - build/**/outputs/**/*.aab
+      - build/ios/ipa/*.ipa        # iOS артефакты
       - ios/Podfile.lock
-
-    cache:
-      cache_paths:
-        - ~/.pub-cache
-        - ios/Pods
-        - ios/Flutter
-        - ${FLUTTER_ROOT}/bin/cache
 
     publishing:
       email:
         recipients:
-          - your.email@example.com  # Замените на ваш email
+          - nukenovdani@gmail.com  # Замените на ваш email
